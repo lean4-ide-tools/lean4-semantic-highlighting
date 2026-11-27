@@ -17,10 +17,8 @@
   <rect x="3" y="3" width="250" height="250" rx="43" fill="url(#tile)"/>
 
   <!-- Heavy, connected lettering based on the Lean wordmark. -->
-  <path fill="url(#highlight)" fill-rule="evenodd"
+  <path transform="translate(2.5 -1)" fill="url(#highlight)" fill-rule="evenodd"
         d="M22 84h11v79h63v-29H64v-11h32V95H64V84h42l16 39h22l16-39h10
            l47 65V84h12v85l-10 5-48-67v67h-12v-58l-21 58h-10l-20-56v50l-6 6
            H28l-6-6z M126 134l7 20 8-20z"/>
-  <path d="M224 72h5m-2.5 0v6m4.5 0v-6l2.5 4 2.5-4v6"
-        fill="none" stroke="#d4d3df" stroke-width="1.3" stroke-linejoin="round"/>
 </svg>

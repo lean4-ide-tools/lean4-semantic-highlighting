@@ -175,7 +175,7 @@ To disable the plugin, remove its target from `plugins` and reload the editor wi
 
 The test matrix covers the following stable releases.
 
-**4.24.0, 4.25.0, 4.25.1, 4.25.2, 4.26.0, 4.28.0, 4.34.1, and 4.35.0.**
+**4.24.0, 4.25.0, 4.25.1, 4.25.2, 4.26.0, 4.28.0, 4.34.1, 4.35.0, and 4.36.0.**
 
 The VS Code extension is incompatible with Lean 4.7.0, 4.17.0, and 4.20.0. Other unlisted releases and nightlies may work, depending on their Lean language-server APIs. Run `lean --version` in your project folder to check the active toolchain.
 
@@ -244,7 +244,7 @@ elan toolchain install leanprover/lean4:v4.35.0
 lake run test-matrix 4.24.0 4.35.0
 ```
 
-To test all eight releases listed above, install each of those toolchains, then run:
+To test all listed releases, install each of those toolchains and run the matrix.
 
 ```sh
 lake run test-matrix

@@ -6,7 +6,7 @@ See the role of each name as you read Lean code and proofs. In `tree.value`, for
 
 The extension uses your project's Lean toolchain. Run `lean --version` in the project folder to see which version is active.
 
-- **Tested releases** include 4.24.0, 4.25.0, 4.25.1, 4.25.2, 4.26.0, 4.28.0, 4.34.1, and 4.35.0.
+- **Tested releases** include 4.24.0, 4.25.0, 4.25.1, 4.25.2, 4.26.0, 4.28.0, 4.34.1, 4.35.0, and 4.36.0.
 - **Known incompatible releases** include 4.7.0, 4.17.0, and 4.20.0. Other unlisted releases and nightlies may work, depending on their Lean language-server APIs.
 
 If the plugin fails to build, Lean continues with its standard highlighting. In **View → Output**, select **Lean 4** for plugin build errors or **Lean 4 Semantic Highlighting** for extension startup errors.

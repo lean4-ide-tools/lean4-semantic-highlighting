@@ -3,7 +3,7 @@ import Lean
 namespace Matrix
 
 def releases : List String :=
-  ["4.24.0", "4.25.0", "4.25.1", "4.25.2", "4.26.0", "4.28.0", "4.34.1", "4.35.0"]
+  ["4.24.0", "4.25.0", "4.25.1", "4.25.2", "4.26.0", "4.28.0", "4.34.1", "4.35.0", "4.36.0"]
 
 def isRelease (version : String) : Bool :=
   let parts := version.splitOn "."
