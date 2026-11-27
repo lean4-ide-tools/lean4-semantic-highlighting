@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - Automatically inferred type parameters now use the same highlighting as explicit ones.
 - Declarations whose result is an alias of `Prop` or `Type` now use proposition or type highlighting.

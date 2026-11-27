@@ -3,7 +3,7 @@
   "displayName": "Lean 4 Semantic Highlighting",
   "icon": "images/icon.png",
   "description": "Additional semantic highlighting for Lean types, functions, constructors, fields, and local variables.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "lean4-ide-tools",
   "license": "MIT",
   "repository": {
