@@ -4,74 +4,45 @@ namespace SemanticHighlighting
 open Lean Lean.Lsp Lean.Server.FileWorker
 open Compat
 
-private def typeForSortResult? (type : Expr) : Option SemanticTokenType :=
-  (Meta.typeFormerTypeLevelQuick type).map fun u =>
-    if u.isAlwaysZero then .enum else .type
-
-private partial def typeExprResult?
-  (env : Environment) (lctx : LocalContext) (type : Expr)
-  (bvarTypes : List Expr := [])
-: Option SemanticTokenType :=
-  match type.getAppFn with
-  | .sort _ => typeForSortResult? type
-  | .forallE _ domain body _ => typeExprResult? env lctx body (domain :: bvarTypes)
-  | .const declName us =>
-    match env.find? declName with
-    | some info => typeForSortResult? (info.instantiateTypeLevelParams us)
-    | none => none
-  | .fvar fvarId =>
-    match lctx.find? fvarId with
-    | some localDecl => typeForSortResult? localDecl.type
-    | none => none
-  | .bvar idx => bvarTypes[idx]?.bind typeForSortResult?
-  | _ => none
+private def typeForSortResult?
+  (type : Expr) (localParam := false)
+: MetaM (Option SemanticTokenType) := do
+  let some u ← Meta.typeFormerTypeLevel type | return none
+  if (← instantiateLevelMVars u).isAlwaysZero then
+    return some .enum
+  if localParam then
+    if (← Meta.whnfD type).isSort then
+      return some .typeParameter
+  return some .type
 
 private def classifyLocal
-  (env : Environment) (ti : Elab.TermInfo) (localDecl : LocalDecl)
-: Option SemanticTokenType := Id.run do
-  let localType := localDecl.type
-  -- Recall that `isAuxDecl` is used for declarations currently being elaborated, e.g. recursive
-  -- functions and inductive types while their constructors are being processed.
+  (isBinder : Bool) (localDecl : LocalDecl)
+: MetaM (Option SemanticTokenType) := do
+  let localType ← instantiateMVars localDecl.type
+  if let some tokenType ← typeForSortResult? localType (localParam := !localDecl.isAuxDecl) then
+    return some tokenType
   if localDecl.isAuxDecl then
-    if let some tokenType := typeForSortResult? localType then
-      return some tokenType
-    else
-      return some .function
-  if let some tokenType := typeForSortResult? localType then
-    if localType.isSort && tokenType == .type then
-      return some .typeParameter
-    else
-      return some tokenType
+    return some .function
   if localDecl.isImplementationDetail then
     return none
-  if typeExprResult? env ti.lctx localType == some .enum then
-    return some .variable
-  if ti.isBinder then
-    return some .parameter
+  if isBinder then
+    unless ← Meta.isProp localType do return some .parameter
   return some .variable
 
-private def classifyConstant
-  (env : Environment) (info : ConstantInfo) (us : List Level := [])
-: SemanticTokenType :=
+private def classifyConstant (info : ConstantInfo) (us : List Level) : MetaM SemanticTokenType := do
+  let env ← getEnv
   if env.isProjectionFn info.name then
-    .property
-  else match info with
-  | .ctorInfo _ => .enumMember
+    return .property
+  match info with
+  | .ctorInfo _ => return .enumMember
   | .inductInfo _ =>
     if isClass env info.name then
-      .interface
-    else if isStructure env info.name then
-      .struct
-    else if let some tokenType := typeForSortResult? (info.instantiateTypeLevelParams us) then
-      tokenType
-    else
-      .type
-  | .thmInfo _ | .recInfo _ => .function
-  | _ =>
-    if let some tokenType := typeForSortResult? (info.instantiateTypeLevelParams us) then
-      tokenType
-    else
-      .function
+      return .interface
+    if isStructure env info.name then
+      return .struct
+    return (← typeForSortResult? (info.instantiateTypeLevelParams us)).getD .type
+  | .thmInfo _ | .recInfo _ => return .function
+  | _ => return (← typeForSortResult? (info.instantiateTypeLevelParams us)).getD .function
 
 private def findConstInfoWithEnv?
   (ctx : Elab.ContextInfo) (finalEnv : Environment) (declName : Name)
@@ -99,7 +70,7 @@ private def getAppFnSyntax? (stx : Syntax) : Option Syntax :=
 private def collectTermInfoBasedSemanticToken
   (finalEnv : Environment)
   (ctx : Elab.ContextInfo) (ti : Elab.TermInfo)
-: Option Token := Id.run do
+: IO (Option Token) := do
   let stx := getSemanticTokenSyntax ti.stx
   if ti.expr.isSort then
     unless stx.isOfKind ``Parser.Term.type || stx.isOfKind ``Parser.Term.sort || stx.isOfKind ``Parser.Term.prop do
@@ -127,23 +98,29 @@ private def collectTermInfoBasedSemanticToken
     if localDecl.isAuxDecl then
       if let some declName := ti.lctx.auxDeclToFullName.get? fvarId then
         if let some info := finalEnv.find? declName then
-          return tokenOfSyntax? stx (classifyConstant finalEnv info)
-    return (classifyLocal ctx.env ti localDecl).bind (tokenOfSyntax? stx ·)
+          return ← classify stx finalEnv (some <$> classifyConstant info [])
+    classify stx ctx.env (classifyLocal ti.isBinder localDecl)
   | Expr.const declName us =>
     let `($_:ident) := stx
       | return none
     let .original .. := stx.getHeadInfo
       | return none
     match findConstInfoWithEnv? ctx finalEnv declName with
-    | some (env, info) => return tokenOfSyntax? stx (classifyConstant env info us)
+    | some (env, info) => classify stx env (some <$> classifyConstant info us)
     | none => return none
   | _ => return none
+where
+  classify (stx : Syntax) (env : Environment) (action : MetaM (Option SemanticTokenType)) := do
+    -- Unfold type aliases without evaluating recursive definitions in a type annotation.
+    let ctx := { ctx with env, options := Meta.smartUnfolding.set ctx.options false }
+    let kind? ← ti.runMetaM ctx <| tryCatchRuntimeEx
+      (Meta.withConfig (fun cfg => { cfg with iota := false }) action) (fun _ => pure none)
+    return kind?.bind (tokenOfSyntax? stx ·)
 
 /-- Collects all semantic tokens from the given `Elab.InfoTree`. -/
-def collectInfoTokens (snapshotEnv : Environment) (i : Elab.InfoTree) : Array Token :=
-  List.toArray <| i.deepestNodes fun ctx info _ => do
-    let .ofTermInfo ti := info
-      | none
+def collectInfoTokens (snapshotEnv : Environment) (i : Elab.InfoTree) : IO (Array Token) :=
+  List.toArray <$> i.deepestNodesM fun ctx info _ => do
+    let .ofTermInfo ti := info | return none
     collectTermInfoBasedSemanticToken (completedEnvironment ctx snapshotEnv) ctx ti
 
 end SemanticHighlighting

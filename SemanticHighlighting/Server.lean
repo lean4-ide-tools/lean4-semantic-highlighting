@@ -14,7 +14,7 @@ def computeTokens
   for snap in snaps do
     checkCancelled
     if snap.endPos <= beginPos then continue
-    tokens := tokens ++ collectSyntaxTokens doc.meta.text snap.stx ++ collectInfoTokens snap.env snap.infoTree
+    tokens := tokens ++ collectSyntaxTokens doc.meta.text snap.stx ++ (← collectInfoTokens snap.env snap.infoTree)
   checkCancelled
   let absolute := toAbsolute doc.meta.text beginPos endPos? tokens
   checkCancelled

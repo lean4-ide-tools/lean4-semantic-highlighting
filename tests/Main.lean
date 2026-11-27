@@ -179,11 +179,21 @@ def classification (root : System.FilePath) : TestM Unit := do
     expect ts spelling kind
   expect ts "RecursiveClass" "interface" (some 2)
   expect ts "InferredList" "type" (some 2)
+  expect ts "β" "typeParameter" (some 2)
+  expect ts "γ" "typeParameter" (some 2)
+  expect ts "m" "variable" (some 2)
+  expect ts "φ" "enum" (some 2)
+  expect ts "δ" "typeParameter" (some 3)
+  expect ts "Claim" "enum" (some 3)
+  expect ts "Predicate" "enum" (some 2)
+  expect ts "evidence" "variable" (some 2)
+  expect ts "Payload" "type" (some 3)
+  expect ts "delayedValue" "function" (some 1)
   ensure ((ts.filter (·.spelling == "«😀»")).map (·.kind) == #["parameter", "variable"])
     "Unicode local binder/use mismatch"
   ensure (ts.any (fun t => t.spelling == "x" && t.kind == "parameter")) "Missing binder token"
   ensure (ts.any (fun t => t.spelling == "x" && t.kind == "variable")) "Missing local use token"
-  for (start, stop) in #[(0, 40), (2, 4), (17, 21), (23, 24), (2, 2)] do
+  for (start, stop) in #[(0, (text.splitOn "\n").length - 1), (2, 4), (17, 21), (23, 24), (2, 2)] do
     let ranged ← tokens uri text (some ⟨⟨start, 0⟩, ⟨stop, 0⟩⟩)
     ensure (ranged == ts.filter (fun t => start <= t.line && t.line < stop)) "Full/range mismatch"
   IO.println s!"PASS classification, UTF-16, and full/range consistency ({ts.size} tokens)"

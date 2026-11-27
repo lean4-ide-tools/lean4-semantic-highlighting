@@ -37,3 +37,23 @@ def field (s : RecursiveStruct) := s.xs
 def utf16 (α : Type) (x : α) := let «😀» := x; «😀»
 def unfinished : Nat := sorry
 example : Sort (max u 1 + 1) := Sort (max u 1)
+
+def inferredId (x : β) : β := x
+def inferredList (x : γ) : List γ := [x]
+def inferredBound (i : Fin m) : Fin m := i
+theorem inferredProp (h : φ ∧ True) : φ := h.1
+
+abbrev Statement := Prop
+def Claim : Statement := True
+def Predicate (_ : Nat) : Statement := Claim
+theorem useClaim (evidence : Predicate 0) : Claim := evidence
+
+def Carrier := Type
+def Payload : Carrier := Nat
+def useCarrier (δ : Carrier) (x : δ) : δ := x
+def usePayload (x : Payload) : Payload := x
+
+def iteratedType : Nat → Type
+  | 0 => Nat
+  | n + 1 => iteratedType n
+axiom delayedValue : iteratedType 1000000
